@@ -1,0 +1,436 @@
+<?
+include_once("./_common.php");
+include_once("$g4[path]/lib/latest.lib.php");
+
+define("__INDEX",TRUE);
+
+$g4['title'] = "";
+include_once("./_head.php");
+
+?>
+
+
+<div id="mainWrap" > 
+	<?
+	//팝업
+	include_once("$g4[path]/lib/popmng.lib.php");
+	?>
+
+	<div class="wrap-main wrap-content">
+		<section class="layout">
+			<div class="page Bg01" >
+				<div>
+				<?include_once("{$g4["path"]}/res/include/mainvisual.php");?>
+				</div>
+			</div>
+
+			<div class="page Bg02" >
+				<div style="font-size:0;" >
+					<div style="height:50%; padding-top:90px; box-sizing:border-box;" >
+						<div style="height:100%; background:url('/res/images/index/m2/text.jpg') no-repeat center center;" ></div>
+					</div>
+					<div style="height:50%; background:url('/res/images/index/m2/bg.jpg') no-repeat center center; background-size:cover;" ></div>
+				</div>
+			</div>
+
+			<div class="page Bg03" >
+				<div style="background:url('/res/images/index/m3/bg.jpg') no-repeat center center;">
+					<?include_once("{$g4["path"]}/res/include/m3.php");?>
+				</div>
+			</div>
+			
+			<div class="page Bg04" >
+				<div>
+					<?include_once("{$g4["path"]}/res/include/m4.php");?>
+				</div>
+			</div>
+
+			<div class="page Bg05" >
+				<div style="background:url('/res/images/index/m5/bg.jpg') no-repeat center center; position:relative;">
+					<?=latest("gallery", "5_1_1_1",  12, 35);?>
+				</div>
+			</div>
+
+			<div class="page Bg06 last" >
+				<?include_once("$g4[path]/res/include/copy.php");?>
+			</div>
+
+		</section>
+	</div>
+</div>
+
+<script>
+
+	var cpage = 1;	// 현재 페이지
+	
+	var pageTopPos = new Array();	// 페이지당 높이 배열
+
+	var wheelUp = false;	// 
+
+	var np ="<?=$np?>";	//
+
+    var is_onload = false;	// is_onload
+    
+    var lastPage = 0;	// 마지막 페이지
+	
+	$(window).load(function() {
+		//커스텀 스크롤바
+		//$("#mainWrap").mCustomScrollbar();
+
+		$(window).scrollTop(0);
+
+		setTimeout("window_size_check()", 100);
+
+        is_onload = true;
+        
+        lastPage = $(".page").index($(".page.last")) + 1;
+
+		set_mainvisual();
+		
+		close_loading();
+	});
+
+	function window_size_check(){
+		var page_w = $(".page").width();
+		var window_w = $(window).width();
+
+		if(page_w != window_w){
+			//console.log("error = " + page_w + " , " + window_w);
+			set_first_page_size();
+		}
+
+		//console.log("ok = " + page_w + " , " + window_w);
+		
+		getScrollBarWidth();
+		setPosition();
+		
+	}
+
+	$(window).on('beforeunload', function() {
+        $(window).scrollTop(0);
+    });
+	$(window).on('unload', function() {
+        $(window).scrollTop(0);
+    });
+
+	$(window).resize(function(){
+		set_first_page_size();
+		setPosition();
+		
+		getScrollBarWidth();
+		go_page(cpage);
+
+		//set_mainvisual();
+		//set_mcon1();
+		
+		//console.log("aa");
+	});
+	$(window).scroll(function(){
+		check_point3();
+	});
+    
+	
+	function getScrollBarWidth () { 
+		var inner = document.createElement('p'); 
+		inner.style.width = "100%"; 
+		inner.style.height = "200px"; 
+		var outer = document.createElement('div'); 
+		outer.style.position = "absolute"; 
+		outer.style.top = "0px"; outer.style.left = "0px"; 
+		outer.style.visibility = "hidden"; 
+		outer.style.width = "200px"; 
+		outer.style.height = "150px"; 
+		outer.style.overflow = "hidden"; 
+		outer.appendChild (inner); 
+		document.body.appendChild (outer);
+		var w1 = inner.offsetWidth; 
+		outer.style.overflow = 'scroll'; 
+		var w2 = inner.offsetWidth;
+		if (w1 == w2) w2 = outer.clientWidth; 
+		document.body.removeChild (outer); 
+		
+		var vals = (w1 - w2);
+		//$(".TopArea").css("width", ( $("#mainWrap").width()-vals )+"px");
+	}
+
+    
+
+	$(function(){
+
+		
+		loading();
+
+		$("html, body").css("overflow", "hidden");
+
+        set_first_page_size();
+        
+		$("#mainWrap").on('mousewheel DOMMouseScroll', function(e) {
+            
+			if(isScrollMoving){
+                e.preventDefault();
+			    return false;
+			}
+            
+            var E = e.originalEvent;
+
+            delta = 0;
+            if (E.detail) {
+                delta = E.detail * -40;
+            }else{
+                delta = E.wheelDelta;
+            }
+
+            if((lastPage) != cpage)  {
+   
+                if(delta > 0){
+                    go_page(cpage-1);
+                   
+                } else {
+                    go_page(cpage+1);
+                }
+
+                e.preventDefault();
+                return false;
+
+            } else {
+
+                if(delta > 0){
+                    check_point3();
+                }
+                
+            }
+
+
+         
+        
+		});
+
+
+		//우측 페이지 이동 버튼
+		$(".mthum_btn > ul > li > button").click(function(){
+			if(!isScrollMoving) {
+				var btn_num = $(this).data("no");
+
+				$(".mthum_btn > ul > li").removeClass("on");
+				$(this).parent("li").addClass("on");
+
+				go_page(btn_num);
+			}
+		});
+
+
+		//페이지별 스크롤 탑 셋팅
+		setPosition();
+
+	});
+
+
+	function setPosition(){
+		pageTopPos = new Array();
+		var idx = 0;
+		$(".page").each(function(){
+			pageTopPos.push($(this).offset().top + $("#mainWrap").scrollTop());
+		});
+
+		//console.log(pageTopPos);
+
+	};
+	
+	//스크롤 변경시 처리
+	function check_point3(){
+    
+        var scrollTop = $("#mainWrap").scrollTop();
+        
+          //마지막 페이지의 첫 지점을 통과시 스크롤    
+          if(cpage == lastPage) {
+
+                if(scrollTop <= pageTopPos[lastPage-1]){
+                    go_page(lastPage-1);
+                    return;
+                }
+         }
+
+        /*
+		//우측 페이지 넘김
+		for(var i = $(".page").size() ; i >= 0 ; i--){
+            
+            var offset = scrollTop + $(".Bg0"+i).height() - ($(".Bg0"+i).height() / 2);
+			if(scrollTop <= pageTopPos[0]){
+				set_quickBtn(1);
+				return;
+			} else if(offset > pageTopPos[i-1]) {
+                set_quickBtn(i);
+                return;
+			}
+        }
+        */
+	}
+
+
+	function set_quickBtn(i){
+
+		//cpage = i;
+		$("#disp_cpage").html(cpage);
+
+		/*
+		$(".quickpage").removeClass("on");
+		if($(".quickpage").size() < (i)) return;
+		sObj = $(".quickpage")[i];
+		$(sObj).addClass("on");
+		*/
+
+		//상단 메뉴
+		/*
+		$(".nav > li").removeClass("on");
+		if(cpage == 1){
+			$(".intro_menu1").addClass("on");
+		}else if(cpage == 2){
+			$(".intro_menu2").addClass("on");
+		}else if(cpage == 3){
+			$(".intro_menu3").addClass("on");
+		}else if(cpage == 4){
+			$(".intro_menu4").addClass("on");
+		}
+		*/
+					
+	}
+	
+	function set_first_page_size(){
+
+		var hHeight = $(".top_area").height();
+		var winHeight = $(window).height();
+		
+        
+		$(".page").each(function(){
+			if( !$(this).hasClass("last") ){
+				$(this).css({
+					"height":winHeight+"px",
+					"width":$(window).width()+"px",
+					"overflow-y":"hidden",
+					"overflow-x":"hidden"
+                });
+                
+				$(this).children("div").css("height", winHeight+"px");
+			}
+		});
+
+		//$(".page:first").css("padding-top", hHeight+"px");
+		set_quickBtn(cpage);
+		go_page(cpage, true);
+	}
+	
+	
+	function pageUp(){
+    
+        go_page(cpage+1);
+	}
+	function pageDown(){
+        go_page(cpage-1);
+	}
+	function go_page(page, isresize){
+		
+        page = parseInt(page);
+        if(page > lastPage) page = lastPage;
+        if(page < 1) page = 1;
+        cpage = page;
+
+		//$(".mthum_btn > p").text("0"+cpage);
+		//$(".scrollbar").stop().animate({"top":((cpage-1)/4 * 100)+"%"}, 300)
+
+		if(isresize === undefined) isresize = false;
+		
+		if(!isScrollMoving) {
+			
+			var pageObj = $(".Bg0"+page);
+            if(pageObj.size() == 0) return;
+			//var hHeight = $(".top").height();
+            //var page_pos = pageObj.offset().top;
+            
+            var page_pos = pageTopPos[parseInt(page)-1];
+
+			page_blur(page);
+
+			$(".page").removeClass("on");
+            pageObj.addClass("on");
+
+
+			if(page > 1){
+				$(".gotop").show();
+				/*
+				$(".TopArea").addClass("on");
+				$(".ci > img").attr("src","/res/images/top/ci_a.png");
+				$(".TopMypage").attr("src","/res/images/top/mypage_a.png");
+				*/
+			} else {
+				$(".gotop").hide();
+				/*
+				$(".TopArea").removeClass("on");
+				$(".ci > img").attr("src","/res/images/top/ci.png");
+				$(".TopMypage").attr("src","/res/images/top/mypage.png");
+				*/
+			}
+            
+            
+            /*
+			if(page_pos == $(document).scrollTop()){
+				return;
+            }
+            */
+
+	
+			if(isresize) {
+				$('#mainWrap').scrollTop(page_pos);
+			} else {
+				scroll_move(page_pos);
+			}
+		}
+
+	}
+
+	function page_blur(page){
+		var pageObj = $(".Bg0"+page);
+		$(".blur").removeClass("blur");
+		setTimeout(function(){
+			pageObj.find("> .movediv").addClass("blur");
+			$(".Bg0"+page+"in").css("visibility","visible");
+		}, 10);
+
+
+
+		var btn_num = page;
+
+		$(".mthum_btn > ul > li").removeClass("on");
+		$(".mthum_btn > ul > li:nth-child("+page+")").addClass("on");
+
+
+		//$("#thum_btn > img").attr("src", "/res/images_abroad/mright_off.png");
+		//$("#thum_btn"+page).attr("src", "/res/images_abroad/mright_on"+page+".png");
+		
+	}
+
+    
+	var isScrollMoving = false;
+	function scroll_move(pos){
+		
+		var scrollTop = $("#mainWrap").scrollTop();
+
+
+		if(!isScrollMoving) {
+			
+			isScrollMoving = true;
+			$("#hidden_layer").show();
+			$('#mainWrap').animate({scrollTop:pos}, 800, "easeOutCubic", function(){ 
+				isScrollMoving=false; 
+				$("#hidden_layer").hide(); 
+            });
+
+		}
+
+
+	}
+</script>
+
+
+<?
+include_once("./tail.sub.php");
+?>
